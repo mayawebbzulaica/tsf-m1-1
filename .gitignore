@@ -1,0 +1,27 @@
+# --- R / RStudio / Positron ---
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# --- Quarto ---
+/.quarto/
+*_files/
+*_cache/
+/site_libs/
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+
+# --- Editor (Positron/VS Code) ---
+.vscode/
+# Si Positron genera su propia carpeta de estado (no confirmado),
+# agréguenla aquí, ej: .positron/
+
+# NOTA: el .html renderizado SÍ se sube al repo a propósito (con
+# embed-resources es un solo archivo autocontenido) — es el entregable,
+# y le evita al equipo/TA tener que re-renderizar para revisarlo.
+# Si algún proyecto pesa mucho por muchos gráficos/widgets y prefieren
+# no versionarlo, descomenten:
+# *.html
