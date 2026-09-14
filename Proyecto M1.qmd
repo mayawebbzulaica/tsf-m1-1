@@ -1,0 +1,65 @@
+---
+title: "Proyecto M1 - Modelo Baseline"
+subtitle: "NSW - Household goods retailing"
+date: 2026-09-13
+format:
+  html:
+    embed-resources: true
+---
+
+```{r}
+library(fpp3)
+
+mi_serie <- aus_retail |> 
+  filter(`Series ID` == "A3349397X")
+mi_serie |> glimpse()
+```
+
+```{r}
+mi_serie |> autoplot(Turnover)
+```
+
+La serie muestra una tendencia claramente creciente a lo largo de todo el periodo (1982-2020): el nivel de ventas sube de forma sostenida año con año.
+
+También se observa un patrón que se repite cada diciembre, con un pico marcado por la temporada navideña, seguido de una caída en los meses posteriores.
+
+Un punto importante es que el tamaño de estos picos de diciembre no se mantiene constante: al inicio de la serie las subidas son pequeñas, pero conforme el nivel general de la serie aumenta, los picos también se hacen más grandes. Esto indica que la variabilidad de la serie no es constante, sino que crece junto con el nivel de ventas. Por esta razón, antes de continuar con el análisis es necesario aplicar una transformación que estabilice esta variabilidad. (se necesita **estabilizar la varianza** con transformación log o Box-Cox antes de hacer la descomposición STL).
+
+```{r}
+mi_serie |> gg_season(Turnover)
+mi_serie |> gg_subseries(Turnover)
+```
+
+El gráfico de estacionalidad por año (gg_season) confirma que el patrón se repite de forma consistente: las ventas bajan en febrero y suben de manera sostenida hasta alcanzar su punto más alto en diciembre, en todos los años de la muestra. Sin embargo, se observa que en los años más recientes el aumento de diciembre es proporcionalmente mayor que en los años iniciales de la serie.
+
+El gráfico por subseries (gg_subseries) muestra que cada mes, por separado, tiene una tendencia creciente a lo largo del tiempo, y que el nivel promedio de diciembre (línea azul) es notablemente más alto que el de cualquier otro mes, confirmando a diciembre como el pico estacional de la serie.
+
+```{r}
+lambda <- mi_serie |> 
+  features(Turnover, guerrero) |> 
+  pull(lambda_guerrero)
+
+lambda
+```
+
+```{r}
+mi_serie |> 
+  autoplot(box_cox(Turnover, lambda))
+```
+
+Para estabilizar la varianza se utilizó una transformación de Box-Cox, con el parámetro lambda seleccionado automáticamente mediante el método de Guerrero, obteniendo un valor de lambda = 0.409.
+
+Al graficar la serie transformada se observa que el tamaño de los picos estacionales de diciembre ahora es consistente a lo largo de todo el periodo, a diferencia de la serie original donde estos picos crecían junto con el nivel de la serie. Esto confirma que la transformación corrigió adecuadamente el problema de varianza no constante.
+
+```{r}
+mi_serie_dcmp <- mi_serie |>
+  model(STL(box_cox(Turnover, lambda) ~ season(window = "periodic"),robust=TRUE))
+
+mi_serie_dcmp |> 
+  components() |> 
+  autoplot()
+```
+
+Se aplicó una descomposición STL sobre la serie transformada, usando una ventana estacional periódica.
+
+La componente de tendencia muestra un crecimiento suave y sostenido a lo largo de todo el periodo, sin señales de estacionalidad ni ruido. La componente estacional (season_year) muestra un patrón anual estable, con amplitud prácticamente constante. Finalmente, el remainder se comporta como ruido, sin un patrón sistemático evidente ni relación con la tendencia o la estacionalidad, salvo por algunos valores atípicos puntuales. Esto indica que la descomposición STL capturó adecuadamente la estructura de la serie.
