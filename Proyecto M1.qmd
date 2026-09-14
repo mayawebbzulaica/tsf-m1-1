@@ -63,3 +63,47 @@ mi_serie_dcmp |>
 Se aplicó una descomposición STL sobre la serie transformada, usando una ventana estacional periódica.
 
 La componente de tendencia muestra un crecimiento suave y sostenido a lo largo de todo el periodo, sin señales de estacionalidad ni ruido. La componente estacional (season_year) muestra un patrón anual estable, con amplitud prácticamente constante. Finalmente, el remainder se comporta como ruido, sin un patrón sistemático evidente ni relación con la tendencia o la estacionalidad, salvo por algunos valores atípicos puntuales. Esto indica que la descomposición STL capturó adecuadamente la estructura de la serie.
+
+```{r}
+# División Train/Test (últimos 24 meses = test)
+# slice() corta por POSICIÓN, (no por fecha)
+# train = todo menos las últimas 24 filas
+# test = esas 24 últimas 
+
+mi_serie_train <- mi_serie |>
+  slice(1:(n() - 24))
+
+mi_serie_test <- mi_serie |>
+  slice((n() - 23):n())
+
+# verificar quue el test debe tener exactamente 24 meses
+mi_serie_test |> nrow()
+
+# Ajuste Estacional + Modelo Baseline (sólo train)
+# decomposition_model() hace la descomposición y el pronóstico en un solo paso. 
+# se usa el mismo lambda que ya calculamos con guerrero() 
+
+ajuste_baseline <- mi_serie_train |>
+  model(
+    stl_snaive_rw = decomposition_model(
+      
+      # descomposición: separa tendencia+ruido de estacionalidad;sobre la serie ya transformada (varianza estable)
+      STL(box_cox(Turnover, lambda) ~ season(window = "periodic")),
+      
+      # modelo para la parte ESTACIONAL (season_year)
+      SNAIVE(season_year),
+      
+      # modelo para la parte AJUSTADA/sin estacionalidad (season_adjust)
+      RW(season_adjust ~ drift())
+    )
+  )
+
+# modelo ajustado
+ajuste_baseline |> report()
+```
+Se ha dividido la serie en un conjunto de entrenamiento (todos los meses excepto los últimos 24) y un conjunto de prueba (los últimos 24 meses). Básicamente lo que se hizo fue que sobre el conjunto de entrenamiento se ajustó el modelo baseline, el cual combina una descomposición STL (sobre la serie transformada con Box-Co) con dos modelos: 
+
+SNAIVE() para pronosticar la componente estacional, y una caminata aleatoria con drift (RW con drift) para 
+pronosticar la componente ajustada estacionalmente.
+
+
