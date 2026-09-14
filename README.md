@@ -1,21 +1,21 @@
-# [Nombre del equipo] — Proyecto Módulo [N]
+# Equipo Proyecto M1-1 — Modelo Baseline NSW Household Goods
 
-Repo de equipo para el proyecto del Módulo [N] del curso de Forecasting de
+Repo de equipo para el proyecto del Módulo 1 del curso de Forecasting de
 Series de Tiempo (ITESO).
 
 ## Integrantes
 
-- Nombre 1
-- Nombre 2
-- Nombre 3
-- Nombre 4
+- Paulina Loera Rivera
+- Regina Tamayo Leon
+- Maya Ángela Webb Zulaica
 
 ## Qué incluye este repo
 
+- `Proyecto M1.qmd`: Documento principal con análisis, modelo baseline, evaluación y pronóstico
 - `_quarto.yml`: configuración compartida (HTML autocontenido, tabla de
   contenido, fix de impresión para objetos `mable`/`fable`/`hilo`).
 - `.gitignore`: ignora artefactos de render y de RStudio/Positron. El
-  `.html` renderizado **sí se versiona a propósito** — es el entregable.
+  `.html` renderizado — es el entregable.
 
 ## Cómo trabajar en este repo
 
