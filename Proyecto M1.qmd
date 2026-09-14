@@ -106,4 +106,81 @@ Se ha dividido la serie en un conjunto de entrenamiento (todos los meses excepto
 SNAIVE() para pronosticar la componente estacional, y una caminata aleatoria con drift (RW con drift) para 
 pronosticar la componente ajustada estacionalmente.
 
+```{r}
+# Hacemos el pronóstico en test (para evaluarlo)
+forecast_test <- ajuste_baseline |>
+  forecast(h = nrow(mi_serie_test))
+# Ahora si evaluamos 
+accuracy_baseline <- forecast_test |>
+  accuracy(mi_serie)
 
+accuracy_baseline
+```
+Obtuvo un MASE del 1.60, esto indica que la descomposición no mejoró en el pronóstico en este caso. Aunque la descomposición no mejoró el desempeño en este caso, los residuales muestran independencia (ACF1 ≈ 0) y el MAPE de 5.07% es aceptable, sugiriendo que el modelo captura la estructura general de la serie. Este modelo baseline podría servir en el futuro cuando veamos modelos mas sofisticados. 
+
+```{r}
+ajuste_baseline |> 
+  select(stl_snaive_rw) |>
+  gg_tsresiduals() +
+  labs(title = "Diagnósticos de Residuales - Modelo Baseline")
+```
+Los diagnósticos de residuales muestran que el modelo se ajusta adecuadamente.
+
+```{r}
+# Visualizamos la tabla de accuracy completa
+accuracy_baseline |> 
+  select(.model, .type, RMSE, MAE, MAPE, MASE, RMSSE) |> 
+  knitr::kable(
+    caption = "Métricas de precisión del modelo baseline en Train y Test",
+    digits = 3
+  )
+```
+
+```{r}
+# Reentrenamos con toda la serie
+modelo_final <- mi_serie |>
+  model(
+    stl_snaive_rw = decomposition_model(
+      STL(box_cox(Turnover, lambda) ~ season(window = "periodic")),
+      SNAIVE(season_year),
+      RW(season_adjust ~ drift())
+    )
+  )
+
+modelo_final |> report()
+```
+
+```{r}
+# pronóstico a 24 meses
+forecast_24 <- modelo_final |> 
+  forecast(h = 24)
+
+forecast_24
+```
+
+```{r}
+# graficamos el pronóstico
+forecast_24 |> 
+  autoplot(mi_serie) +
+  labs(
+    title = "NSW - Household Goods Retailing",
+    subtitle = "Pronóstico 24 meses | Modelo Baseline: STL + SNAIVE + RW(drift)",
+    y = "Turnover (AUD Million)",
+    x = "Año"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# tabla de pronósticos
+forecast_24 |> 
+  as_tibble() |> 
+  select(Month, .mean) |> 
+  rename("Período" = Month, "Pronóstico" = .mean) |> 
+  knitr::kable(
+    caption = "Pronóstico a 24 meses",
+    digits = 2
+  )
+```
+
+El modelo baseline reentrenado en la serie completa genera un pronóstico a 24 meses que mantiene la tendencia creciente observada históricamente y preserva el patrón estacional característico (picos en diciembre). Los intervalos de confianza del 80% y 95% se ensanchan progresivamente hacia el horizonte, reflejando apropiadamemte el aumento de incertidumbre a medida que se aleja del final de la serie.
